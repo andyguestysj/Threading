@@ -1,12 +1,8 @@
 package com.example;
 
 import java.awt.image.BufferedImage;
-import java.util.*;
-import java.lang.*;
 import java.io.*;
-import java.util.Iterator;
 import javax.imageio.*;
-import javax.imageio.stream.*;
 
 public class ImageMaker {
 

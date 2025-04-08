@@ -1,15 +1,9 @@
 package com.example;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -34,9 +28,9 @@ public final class App {
     private static final int CONCURRENT_THREADS = 4;
     
 
-    private static final double STARTX = -1.5;
-    private static final double ENDX = 0.5;
-    private static final double STARTY = -1.2;
+    private static final double START_X = -1.5;
+    private static final double END_X = 0.5;
+    private static final double START_Y = -1.2;
 
     private static int img_width = WIDTH; 
     private static int img_height = THREADS * HEIGHT;
@@ -50,38 +44,45 @@ public final class App {
         int [][] iterations = new int[img_width][img_height];
         
 
-        double width = ENDX - STARTX;
+        double width = END_X - START_X;
         double height = width * ((double)HEIGHT/WIDTH) * 2.0;
 
         LocalTime startTime = LocalTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm:ss");
         System.out.println("Start time : " + startTime.format(formatter));
 
-        ExecutorService executer = Executors.newFixedThreadPool(CONCURRENT_THREADS);
+        ExecutorService executor = Executors.newFixedThreadPool(CONCURRENT_THREADS);
 
-        Mandelbrot mandie;
+
+
+        Mandelbrot mandelbrotSlice;        
         for (int thread = 0; thread < THREADS; thread++) {
-            double threadStartY = STARTY + thread * height;
-            double threadEndY = STARTY + (thread+1) * height;
-            mandie = new Mandelbrot(WIDTH, HEIGHT, thread, STARTX, ENDX, threadStartY, threadEndY, iterations);
-            //mandie.run();
-            executer.execute(mandie);
+            double threadSTART_Y = START_Y + thread * height;
+            double threadEndY = START_Y + (thread+1) * height;
+            mandelbrotSlice = new Mandelbrot(WIDTH, HEIGHT, thread, START_X, END_X, threadSTART_Y, threadEndY, iterations);            
+            executor.execute(mandelbrotSlice);
         }
 
-        executer.shutdown();
-        try{
-            executer.awaitTermination(30, TimeUnit.SECONDS);
+        executor.shutdown();
+        try {
+            boolean terminated = executor.awaitTermination(30, TimeUnit.SECONDS);
+            if (!terminated) {
+                System.out.println("Warning: Executor did not terminate within the timeout. Forcing shutdown.");
+                executor.shutdownNow();
+            }
         } catch (InterruptedException e) {
+            System.out.println("Executor termination interrupted.");
             e.printStackTrace();
+            Thread.currentThread().interrupt();
         }
 
         System.out.println("Done");
 
 
 
-        mandelbrotColouringRed(iterations);
+        mandelbrotColoringRed(iterations);
 
-        ImageMaker img = new ImageMaker(img_width, img_height, r,g,b);
+        new ImageMaker(img_width, img_height, r,g,b);
 
     
         LocalTime endTime = LocalTime.now();        
@@ -116,7 +117,7 @@ public final class App {
     }
 
     
-    public static void mandelbrotColouringRed(int [][] iterations) {
+    public static void mandelbrotColoringRed(int [][] iterations) {
         int maxIterations = calcMax(iterations);
 
         for (int x=0; x<img_width; x++){
@@ -127,7 +128,7 @@ public final class App {
                     g[x][y] = 0;
                     b[x][y] = 0;
                 }
-                if (factor<0.05){
+                else if (factor<0.05){
                     double intensity = Math.round(255.0 * ((factor-0.025)*40.0));
                     r[x][y] = (int)intensity;
                     g[x][y] = 0;
